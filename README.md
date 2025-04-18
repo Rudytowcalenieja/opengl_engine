@@ -1,2 +1,2 @@
 # Silnik autorstwa Rudytowcalenieja
-## Prosty silink, do którym zaimplementowany jest ECS
+## Prosty silink, w którym zaimplementowany jest ECS
