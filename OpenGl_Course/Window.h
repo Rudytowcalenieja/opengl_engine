@@ -13,14 +13,16 @@ public:
 
 	int Initialise();
 
-	GLfloat getBufferWidth() { return bufferWidth; }
-	GLfloat getBufferHeight() { return bufferHeight; }
+	GLint getBufferWidth() { return bufferWidth; }
+	GLint getBufferHeight() { return bufferHeight; }
 
 	bool getShouldClose() { return glfwWindowShouldClose(mainWindow); }
 
 	bool* getKeys() { return keys; }
 	GLfloat getXChange();
 	GLfloat getYChange();
+
+	GLFWwindow* getWindow() { return mainWindow; }
 
 	void swapBuffers() { return glfwSwapBuffers(mainWindow); }
 

@@ -131,6 +131,7 @@ void Window::handleMouse(GLFWwindow* window, double xPos, double yPos) {
 
 Window::~Window() {
 	printf("Closing app...\n");
+
 	glfwDestroyWindow(mainWindow);
 	glfwTerminate();
 }

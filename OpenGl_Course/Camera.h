@@ -16,7 +16,11 @@ public:
 	void keyControl(bool* keys, GLfloat deltaTime);
 	void mouseControl(GLfloat xChange, GLfloat yChange);
 
+	glm::vec3 GetPosition() { return position; }
+
 	glm::mat4 calculateViewMatrix();
+
+	void setWindow(GLFWwindow* w) { window = w; }
 
 	~Camera();
 
@@ -34,6 +38,10 @@ private:
 	GLfloat turnSpeed;
 
 	GLfloat velocity;
+
+	GLFWwindow* window;
+
+	bool cursorHidden;
 
 	void update();
 };
