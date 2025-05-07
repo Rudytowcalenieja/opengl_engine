@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -7,12 +9,13 @@
 
 #include "Shader.h"
 
-class Mesh
+class Instanced
 {
 public:
-	Mesh();
+	Instanced();
 
-	void CreateMesh(GLfloat *vertices, unsigned int *indices, unsigned int numOfVertices, unsigned int numOfIndices);
+	void CreateMesh(GLfloat* vertices, unsigned int* indices, unsigned int numOfVertices, unsigned int numOfIndices);
+	void CreateInstanced();
 
 	void Translate(GLfloat xPos, GLfloat yPos, GLfloat zPos);
 	void Scale(GLfloat xScale, GLfloat yScale, GLfloat zScale);
@@ -28,14 +31,16 @@ public:
 	void RenderMesh();
 	void ClearMesh();
 
-	~Mesh();
+	~Instanced();
 
 private:
 	const float toRadians = 0.017453292f;
 
-	GLuint VAO, VBO, IBO;
+	const static int COUNT = 1000000;
+
+	GLuint VAO, VBO, IBO, instancedVBO;
 	GLsizei indexCount;
-	
+
 	bool isDisplayed;
 
 	glm::vec3 position;
@@ -43,5 +48,7 @@ private:
 	glm::vec3 scale;
 
 	glm::mat4 mat;
+
+	glm::vec3 offsets[COUNT];
 };
 

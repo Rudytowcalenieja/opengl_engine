@@ -17,6 +17,10 @@ public:
 
 	std::string ReadFile(const char* fileLocation);
 
+	GLuint GetID();
+
+	static GLuint GetUniform(GLuint id, const char* uniform);
+
 	GLuint GetProjectionLocation();
 	GLuint GetModelLocation();
 	GLuint GetViewLocation();

@@ -1,4 +1,5 @@
 #define STB_IMAGE_IMPLEMENTATION
+#define STB_PERLIN_IMPLEMENTATION
 
 #include <stdio.h>
 #include <string.h>
@@ -19,9 +20,13 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "ImGuizmo.h"
+
+#include "stb_perlin.h"
 
 #include "Window.h"
 #include "Mesh.h"
+#include "Instanced.h"
 #include "Shader.h"
 #include "Camera.h"
 #include "Texture.h"
@@ -43,6 +48,7 @@ Camera camera;
 
 Texture brickTexture;
 Texture dirtTexture;
+Texture waterTexture;
 
 Material shinyMaterial;
 Material dullMaterial;
@@ -53,11 +59,17 @@ GLfloat deltaTime = 0.0f;
 GLfloat lastTime = 0.0f;
 GLfloat now = 0.0f;
 
-// Vertex Shader
-static const char* vShader = "Shaders/shader.vert";
+GLfloat diffuseStrength = 0.3f;
+GLfloat ambientStrength = 0.1f;
 
-// Fragment Shader
+static int selected = 0;
+static ImGuizmo::OPERATION operation = ImGuizmo::TRANSLATE;
+
+// Shaders
+static const char* vShader = "Shaders/shader.vert";
 static const char* fShader = "Shaders/shader.frag";
+
+Instanced* inst;
 
 void calcAverageNormals(unsigned int * indices, unsigned int indiceCount, GLfloat * vertices, unsigned int verticeCount, 
 						unsigned int vLength, unsigned int normalOffset)
@@ -100,71 +112,112 @@ void calcAverageNormals(unsigned int * indices, unsigned int indiceCount, GLfloa
 // Drawing triangle
 void CreateObjects() {
 
-	unsigned int indices[] = {
-		0, 3, 1,
-		1, 3, 2,
-		2, 3, 0,
-		0, 1, 2
+	GLuint indices[] = {
+		1, 2, 0,
+		3, 1, 0,
+		0, 2, 3,
+		1, 3, 2
 	};
 
 	GLfloat vertices[] = {
 	//   x      y      z      u     v      nx    ny    nz
-		-1.0f, -1.0f, -0.6f,  0.0f, 0.0f,  0.0f, 0.0f, 0.0f,
+		-1.0f, -1.0f, -1.0f,  0.0f, 0.0f,  0.0f, 0.0f, 0.0f,
+		 1.0f, -1.0f, -1.0f,  1.0f, 0.0f,  0.0f, 0.0f, 0.0f,
 		 0.0f, -1.0f,  1.0f,  0.5f, 0.0f,  0.0f, 0.0f, 0.0f,
-		 1.0f, -1.0f, -0.6f,  1.0f, 0.0f,  0.0f, 0.0f, 0.0f,
 		 0.0f,  1.0f,  0.0f,  0.5f, 1.0f,  0.0f, 0.0f, 0.0f
 	};
 
 	calcAverageNormals(indices, 12, vertices, 32, 8, 5);
 
-	Mesh* obj1 = new Mesh();
+	GameObject* obj1 = new GameObject();
 	obj1->CreateMesh(vertices, indices, 32, 12);
-	meshList.push_back(obj1);
+	obj1->Translate(0.0f, 0.0f, 0.0f);
+	gameObjectList.push_back(obj1);
 
-	Mesh* obj2 = new Mesh();
+	GameObject* obj2 = new GameObject();
 	obj2->CreateMesh(vertices, indices, 32, 12);
-	meshList.push_back(obj2);
+	obj2->Translate(0.0f, 0.0f, 2.5f);
+	gameObjectList.push_back(obj2);
 
 	Mesh* obj3 = new Mesh();
 	obj3->CreateMesh(vertices, indices, 32, 12);
+	obj3->Translate(0.0f, 0.0f, 5.0f);
 	meshList.push_back(obj3);
 
-	unsigned int cubeIndices[] = {
-		1, 0, 2,
-		1, 3, 2,
-		5, 4, 6,
-		5, 7, 6,
-		4, 0, 2,
-		2, 6, 4,
-		1, 5, 7,
-		7, 3, 1,
-		0, 1, 5,
-		5, 4, 0,
-		2, 3, 7,
-		7, 6, 2
+	GLuint cubeIndices[] = {
+		// Front
+		0,  1,  2,   2,  3,  0,
+		// Back
+		4,  5,  6,   6,  7,  4,
+		// Left
+		8,  9, 10,  10, 11,  8,
+		// Right
+		12, 13, 14,  14, 15, 12,
+		// Bottom
+		16, 17, 18,  18, 19, 16,
+		// Top
+		20, 21, 22,  22, 23, 20
 	};
 
 	GLfloat cubeVertices[] = {
-	//   x      y      z      u     v      nx    ny    nz
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,  0.0f, 0.0f, 0.0f, // 0
-		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,  0.0f, 0.0f, 0.0f, // 1
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0.0f, 0.0f, 0.0f, // 2
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  0.0f, 0.0f, 0.0f, // 3
-		-0.5f, -0.5f,  0.5f,  1.0f, 0.0f,  0.0f, 0.0f, 0.0f, // 4
-		 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0.0f, 0.0f, 0.0f, // 5
-		-0.5f,  0.5f,  0.5f,  1.0f, 1.0f,  0.0f, 0.0f, 0.0f, // 6
-		 0.5f,  0.5f,  0.5f,  0.0f, 1.0f,  0.0f, 0.0f, 0.0f  // 7
+		// Positions          // UVs        // Normals
+
+		// Front (+Z)
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,   0.0f, 0.0f, 1.0f,  // 0
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,   0.0f, 0.0f, 1.0f,  // 1
+		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,   0.0f, 0.0f, 1.0f,  // 2
+		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,   0.0f, 0.0f, 1.0f,  // 3
+
+		// Back (-Z)
+		 0.5f, -0.5f, -0.5f,  0.0f, 0.0f,   0.0f, 0.0f, -1.0f, // 4
+		-0.5f, -0.5f, -0.5f,  1.0f, 0.0f,   0.0f, 0.0f, -1.0f, // 5
+		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,   0.0f, 0.0f, -1.0f, // 6
+		 0.5f,  0.5f, -0.5f,  0.0f, 1.0f,   0.0f, 0.0f, -1.0f, // 7
+
+		// Left (-X)
+		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,  -1.0f, 0.0f, 0.0f,  // 8
+		-0.5f, -0.5f,  0.5f,  1.0f, 0.0f,  -1.0f, 0.0f, 0.0f,  // 9
+		-0.5f,  0.5f,  0.5f,  1.0f, 1.0f,  -1.0f, 0.0f, 0.0f,  // 10
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  -1.0f, 0.0f, 0.0f,  // 11
+
+		// Right (+X)
+		 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,   1.0f, 0.0f, 0.0f,  // 12
+		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,   1.0f, 0.0f, 0.0f,  // 13
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,   1.0f, 0.0f, 0.0f,  // 14
+		 0.5f,  0.5f,  0.5f,  0.0f, 1.0f,   1.0f, 0.0f, 0.0f,  // 15
+
+		// Bottom (-Y)
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,   0.0f, -1.0f, 0.0f, // 16
+		 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,   0.0f, -1.0f, 0.0f, // 17
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,   0.0f, -1.0f, 0.0f, // 18
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,   0.0f, -1.0f, 0.0f, // 19
+
+		// Top (+Y)
+		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,   0.0f, 1.0f, 0.0f,  // 20
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,   0.0f, 1.0f, 0.0f,  // 21
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,   0.0f, 1.0f, 0.0f,  // 22
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,   0.0f, 1.0f, 0.0f   // 23
 	};
 
-	calcAverageNormals(cubeIndices, 36, cubeVertices, 64, 8, 5);
+	//calcAverageNormals(cubeIndices, 36, cubeVertices, 192, 8, 5);
 
 	Mesh* cube = new Mesh();
-	cube->CreateMesh(cubeVertices, cubeIndices, 64, 36);
+	cube->CreateMesh(cubeVertices, cubeIndices, 192, 36);
 	meshList.push_back(cube);
 
-	GameObject* test = new GameObject("Cube", true, 0.0f, 1.0f, 0.0f);
-	test->CreateMesh(cubeVertices, cubeIndices, 64, 36);
+	GameObject* test = new GameObject("Cube");
+	test->CreateMesh(cubeVertices, cubeIndices, 192, 36);
+	test->Translate(0.0f, -2.0f, 0.0f);
 	gameObjectList.push_back(test);
+
+	GameObject* block = new GameObject("Block");
+	block->CreateMesh(cubeVertices, cubeIndices, 192, 36);
+	gameObjectList.push_back(block);
+
+	inst = new Instanced();
+	inst->CreateMesh(cubeVertices, cubeIndices, 192, 36);
+	inst->CreateInstanced();
+	inst->Translate(0.0f, 10.0f, 0.0f);
 }
 
 void CreateShaders() {
@@ -173,20 +226,68 @@ void CreateShaders() {
 	shaderList.push_back(*shader1);
 }
 
+void DrawGUI() {
+
+	// ImGui Create window
+	ImGui::Begin("Info");
+	ImGui::LabelText("FPS", "%.1f", 1 / deltaTime);
+	ImGui::LabelText("Camera", "%.2f, %.2f, %.2f", camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
+	ImGui::InputFloat("Ambient Strength", &ambientStrength, 0.1f, 0.1f, "%.1f");
+	ImGui::InputFloat("Diffuse Strength", &diffuseStrength, 0.1f, 0.1f, "%.1f");
+	if (ImGui::BeginCombo("Object", gameObjectList.at(selected)->GetName())) {
+		for (int i = 0; i < gameObjectList.size(); ++i) {
+			bool is_selected = (selected == i);
+			if (ImGui::Selectable(gameObjectList.at(i)->GetName(), is_selected)) {
+				selected = i;
+			}
+			if (is_selected) {
+				ImGui::SetItemDefaultFocus(); // Default keyboard focus
+			}
+		}
+		ImGui::EndCombo();
+	}
+	ImGui::Text("Operation:");
+	if (ImGui::RadioButton("Translate", operation == ImGuizmo::TRANSLATE)) operation = ImGuizmo::TRANSLATE;
+	ImGui::SameLine();
+	if (ImGui::RadioButton("Rotate", operation == ImGuizmo::ROTATE)) operation = ImGuizmo::ROTATE;
+	ImGui::SameLine();
+	if (ImGui::RadioButton("Scale", operation == ImGuizmo::SCALE)) operation = ImGuizmo::SCALE;
+
+	ImGui::End();
+}
+
 int main() {
 
+	srand(time(NULL));
+
+	const int width = 200;
+	const int height = 200;
+
+	std::vector<unsigned char> noiseData(width * height);
+
+	float scale = 0.05f;  // Adjust to zoom in/out
+	for (int y = 0; y < height; ++y) {
+		for (int x = 0; x < width; ++x) {
+			float nx = x * scale;
+			float ny = y * scale;
+			float noise = stb_perlin_noise3(nx, ny, 0.0f, 0, 0, 0); // Z=0, no tiling
+			noise = noise * 0.5f + 0.5f;  // Convert from [-1, 1] to [0, 1]
+			noiseData[y * width + x] = static_cast<unsigned char>(noise * 20);
+		}
+	}
+
 	// Creating window
-	mainWindow = Window(1600, 1200);
+	mainWindow = Window(1800, 1200);
 	mainWindow.Initialise();
 
 	// Init ImGui
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.Fonts->AddFontFromFileTTF("font.ttf", 18);
 	ImGui::StyleColorsDark();
 	ImGui_ImplGlfw_InitForOpenGL(mainWindow.getWindow(), true);
 	ImGui_ImplOpenGL3_Init("#version 330");
-	io.FontGlobalScale = 1.5f;
 
 	CreateObjects();
 	CreateShaders();
@@ -199,27 +300,29 @@ int main() {
 	brickTexture.LoadTexture();
 	dirtTexture = Texture("Images/dirt.png");
 	dirtTexture.LoadTexture();
+	waterTexture = Texture("Images/water.png");
+	waterTexture.LoadTexture();
+
 
 	shinyMaterial = Material(1.0f, 32);
 	dullMaterial = Material(0.3f, 4);
 
-	mainLight = Light(1.0f,  1.0f,  1.0f, 0.1f,
-					  0.0f, 0.0f, -1.0f, 0.3f);
+	mainLight = Light(1.0f, 1.0f,  1.0f, ambientStrength,
+					  0.0f, 0.3f, -1.0f, diffuseStrength);
 
 	// Creating uniforms
 	GLuint uniformProjection = 0, uniformModel = 0, uniformView = 0, uniformEyePosition = 0, uniformAmbientIntensity = 0, uniformAmbientColor = 0, uniformDirection = 0, uniformDiffuseIntensity = 0, uniformSpecularIntensity = 0, uniformShininess = 0;
-	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (GLfloat)mainWindow.getBufferWidth() / mainWindow.getBufferHeight(), 0.1f, 100.0f);
+	glm::mat4 projection = glm::perspective(glm::radians(60.0f), (GLfloat)mainWindow.getBufferWidth() / mainWindow.getBufferHeight(), 0.1f, 200.0f);
 
 	printf("Initialisation success!\n");
 
-	printf("Created cube named %s\n", gameObjectList[0]->GetName());
-	gameObjectList[0]->AddComponent<BoxCollider3D>();
-	gameObjectList[0]->AddComponent<Rigidbody>();
-
-	glm::vec3 cubePos(0.0f);
+	glm::mat4 model(1.0f);
 
 	// Loop until window closed
 	while (!mainWindow.getShouldClose()) {
+
+		mainLight.setAmbientIntensity(ambientStrength);
+		mainLight.setDiffuseIntensity(diffuseStrength);
 
 		// deltaTime calculations
 		now = glfwGetTime();
@@ -233,13 +336,47 @@ int main() {
 		camera.keyControl(mainWindow.getKeys(), deltaTime);
 		camera.mouseControl(mainWindow.getXChange(), mainWindow.getYChange());
 
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		DrawGUI();
+
+		// --- Gizmo logic here ---
+		//ImGui::SetNextWindowPos(ImVec2(0, 0));
+		//ImGui::SetNextWindowSize(io.DisplaySize);
+		//ImGui::Begin("##gizmo_bg", nullptr,
+		//	ImGuiWindowFlags_NoInputs |
+		//	ImGuiWindowFlags_NoTitleBar |
+		//	ImGuiWindowFlags_NoResize |
+		//	ImGuiWindowFlags_NoMove |
+		//	ImGuiWindowFlags_NoScrollbar |
+		//	ImGuiWindowFlags_NoBackground);
+		//ImGui::End();
+		//ImGuizmo::BeginFrame();
+		//ImGuizmo::SetOrthographic(false);
+		//ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
+		//ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+		//
+		//ImGuizmo::Manipulate(
+		//	glm::value_ptr(camera.calculateViewMatrix()),
+		//	glm::value_ptr(projection),
+		//	operation,  // or ROTATE, SCALE
+		//	ImGuizmo::LOCAL,      // or WORLD
+		//	glm::value_ptr(model)          // Your 4x4 float matrix
+		//);
+		//
+		//if (ImGuizmo::IsUsing()) {
+		//	glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		//}
+
+		ImGui::Render();
+
 		// Clear window
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Sky color
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
-		// Shaders
 		shaderList[0].UseShader();
-		// Getting uniforms
 		uniformModel = shaderList[0].GetModelLocation();
 		uniformProjection = shaderList[0].GetProjectionLocation();
 		uniformView = shaderList[0].GetViewLocation();
@@ -251,67 +388,30 @@ int main() {
 		uniformSpecularIntensity = shaderList[0].GetSpecularIntensityLocation();
 		uniformShininess = shaderList[0].GetShininessLocation();
 
-		// Light
 		mainLight.UseLight(uniformAmbientIntensity, uniformAmbientColor,
 							uniformDiffuseIntensity, uniformDirection);
 
 		glUniformMatrix4fv(uniformProjection, 1, GL_FALSE, glm::value_ptr(projection));
 		glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(camera.calculateViewMatrix()));
 		glUniform3f(uniformEyePosition, camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
-
-		//
-		// Drawing
-		// 
-
-		// First
-		glm::mat4 model(1.0f);
-		model = glm::translate(model, glm::vec3(0.0f, 0.0f, -2.5f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		brickTexture.UseTexture();
-		shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
-		meshList[0]->RenderMesh();
-
-		// Second
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(0.0f, 4.0f, -2.5f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		
 		dirtTexture.UseTexture();
 		dullMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
-		meshList[1]->RenderMesh();
-
-		gameObjectList[0]->UpdateAll(deltaTime);
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, gameObjectList[0]->GetPosition());
-		model = glm::scale(model, gameObjectList[0]->GetScale());
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
 		gameObjectList[0]->RenderMesh();
+
+		brickTexture.UseTexture();
+		shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
+		gameObjectList[1]->RenderMesh();;
+
+		brickTexture.UseTexture();
+		shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
+		gameObjectList[2]->RenderMesh();
+
+		inst->RenderMesh();
 		
 		glUseProgram(0);
 
-		//
-		// ImGui staff
-		// //
-		// ImGui Create frame
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-		ImGui::SetNextWindowSize(ImVec2(320, 0), ImGuiCond_Always);
-
-		// ImGui Create window
-		ImGui::Begin("Info");
-		ImGui::LabelText("FPS", "%.1f", 1 / deltaTime);	
-		ImGui::LabelText("Camera", "%.2f, %.2f, %.2f", camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
-		cubePos = gameObjectList[0]->GetPosition();
-		ImGui::InputFloat("Cube X", &cubePos.x);
-		ImGui::InputFloat("Cube Y", &cubePos.y);
-		ImGui::InputFloat("Cube Z", &cubePos.z);
-		ImGui::End();
-
-		// ImGui Draw
-		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
 		mainWindow.swapBuffers();
 	}
 

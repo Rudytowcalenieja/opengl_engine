@@ -80,6 +80,16 @@ void Shader::CompileShader(const char* vertexCode, const char* fragmentCode) {
 	uniformEyePosition = glGetUniformLocation(shaderID, "eyePosition");
 }
 
+GLuint Shader::GetID()
+{
+	return shaderID;
+}
+
+GLuint Shader::GetUniform(GLuint id, const char* uniform)
+{
+	return glGetUniformLocation(id, uniform);
+}
+
 GLuint Shader::GetProjectionLocation() {
 	return uniformProjection;
 }

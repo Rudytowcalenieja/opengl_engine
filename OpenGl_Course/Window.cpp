@@ -72,6 +72,12 @@ int Window::Initialise() {
 	}
 
 	glEnable(GL_DEPTH_TEST);
+		
+	glDepthFunc(GL_LESS);
+
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+	glFrontFace(GL_CCW);
 
 	// Create viewport
 	glViewport(0, 0, bufferWidth, bufferHeight);
