@@ -49,6 +49,8 @@ private:
 
 	glm::mat4 mat;
 
+	std::vector<glm::mat4> matrixes;
+
 	glm::vec3 offsets[COUNT];
 };
 

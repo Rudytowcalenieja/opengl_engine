@@ -1,17 +1,14 @@
-#include "Instanced.h"
+#include "Terrain.h"
 
-Instanced::Instanced() {
+Terrain::Terrain() {
 	VAO = 0;
 	VBO = 0;
 	IBO = 0;
 	instancedVBO = 0;
 	indexCount = 0;
-
-	scale = glm::vec3(1.0f);
-	rotation = glm::vec3(0.0f);
 }
 
-void Instanced::CreateMesh(GLfloat* vertices, unsigned int* indices, unsigned int numOfVertices, unsigned int numOfIndices) {
+void Terrain::CreateMesh(GLfloat* vertices, unsigned int* indices, unsigned int numOfVertices, unsigned int numOfIndices) {
 	indexCount = numOfIndices;
 
 	glGenVertexArrays(1, &VAO);
@@ -38,12 +35,28 @@ void Instanced::CreateMesh(GLfloat* vertices, unsigned int* indices, unsigned in
 	glBindVertexArray(0);
 }
 
-void Instanced::CreateInstanced() {
+void Terrain::CreateInstanced() {
+
+	const int width = 1000;
+	const int height = 1000;
+
+	std::vector<unsigned char> noiseData(width * height);
+
+	float scale = 0.05f;  // Adjust to zoom in/out
+	for (int y = 0; y < height; ++y) {
+		for (int x = 0; x < width; ++x) {
+			float nx = x * scale;
+			float ny = y * scale;
+			float noise = stb_perlin_noise3(nx, ny, 0.0f, 0, 0, 0); // Z=0, no tiling
+			noise = noise * 0.5f + 0.5f;  // Convert from [-1, 1] to [0, 1]
+			noiseData[y * width + x] = static_cast<unsigned char>(noise * 10);
+		}
+	}
 
 	int i = 0;
 	for (int y = 0; y < 1000; ++y) {
 		for (int x = 0; x < 1000; ++x) {
-			offsets[i] = glm::vec3(x - 5, 0, y - 5);
+			offsets[i] = glm::vec3(x - 5, noiseData[i] * 1.0f, y - 5);
 			i++;
 		}
 	}
@@ -55,29 +68,14 @@ void Instanced::CreateInstanced() {
 	glBindVertexArray(VAO);
 	glEnableVertexAttribArray(3);
 	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-	glVertexAttribDivisor(3, 1); // advance per instance
+	glVertexAttribDivisor(3, 1);
 	glBindVertexArray(0);
 }
 
-void Instanced::Translate(GLfloat xPos, GLfloat yPos, GLfloat zPos) {
-	position = glm::vec3(xPos, yPos, zPos);
-}
-
-void Instanced::Scale(GLfloat xScale, GLfloat yScale, GLfloat zScale) {
-	scale = glm::vec3(xScale, yScale, zScale);
-}
-
-void Instanced::Rotate(GLfloat xRot, GLfloat yRot, GLfloat zRot) {
-	rotation = glm::vec3(xRot, yRot, zRot);
-}
-
-void Instanced::RenderMesh() {
+void Terrain::RenderMesh() {
 	mat = glm::mat4(1.0f);
 
-	mat = glm::scale(mat, scale);
-	//mat = glm::rotate(mat, 3.14159256f, rotation);
-
-	glUniform3f(Shader::GetUniform(1, "position"), position.x, position.y, position.z);
+	glUniform3f(Shader::GetUniform(1, "position"), 0, 0, 0);
 	glUniformMatrix4fv(Shader::GetUniform(1, "model"), 1, GL_FALSE, glm::value_ptr(mat));
 
 	glBindVertexArray(VAO);
@@ -88,7 +86,7 @@ void Instanced::RenderMesh() {
 
 }
 
-void Instanced::ClearMesh() {
+void Terrain::ClearMesh() {
 	if (IBO != 0) {
 		glDeleteBuffers(1, &IBO);
 		IBO = 0;
@@ -112,6 +110,6 @@ void Instanced::ClearMesh() {
 	indexCount = 0;
 }
 
-Instanced::~Instanced() {
+Terrain::~Terrain() {
 	ClearMesh();
 }

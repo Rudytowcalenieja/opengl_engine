@@ -22,11 +22,10 @@
 #include "imgui_impl_opengl3.h"
 #include "ImGuizmo.h"
 
-#include "stb_perlin.h"
-
 #include "Window.h"
 #include "Mesh.h"
 #include "Instanced.h"
+#include "Terrain.h"
 #include "Shader.h"
 #include "Camera.h"
 #include "Texture.h"
@@ -69,7 +68,7 @@ static ImGuizmo::OPERATION operation = ImGuizmo::TRANSLATE;
 static const char* vShader = "Shaders/shader.vert";
 static const char* fShader = "Shaders/shader.frag";
 
-Instanced* inst;
+Terrain* terrain;
 
 void calcAverageNormals(unsigned int * indices, unsigned int indiceCount, GLfloat * vertices, unsigned int verticeCount, 
 						unsigned int vLength, unsigned int normalOffset)
@@ -214,10 +213,9 @@ void CreateObjects() {
 	block->CreateMesh(cubeVertices, cubeIndices, 192, 36);
 	gameObjectList.push_back(block);
 
-	inst = new Instanced();
-	inst->CreateMesh(cubeVertices, cubeIndices, 192, 36);
-	inst->CreateInstanced();
-	inst->Translate(0.0f, 10.0f, 0.0f);
+	terrain = new Terrain();
+	terrain->CreateMesh(cubeVertices, cubeIndices, 192, 36);
+	terrain->CreateInstanced();
 }
 
 void CreateShaders() {
@@ -259,22 +257,6 @@ void DrawGUI() {
 int main() {
 
 	srand(time(NULL));
-
-	const int width = 200;
-	const int height = 200;
-
-	std::vector<unsigned char> noiseData(width * height);
-
-	float scale = 0.05f;  // Adjust to zoom in/out
-	for (int y = 0; y < height; ++y) {
-		for (int x = 0; x < width; ++x) {
-			float nx = x * scale;
-			float ny = y * scale;
-			float noise = stb_perlin_noise3(nx, ny, 0.0f, 0, 0, 0); // Z=0, no tiling
-			noise = noise * 0.5f + 0.5f;  // Convert from [-1, 1] to [0, 1]
-			noiseData[y * width + x] = static_cast<unsigned char>(noise * 20);
-		}
-	}
 
 	// Creating window
 	mainWindow = Window(1800, 1200);
@@ -343,32 +325,32 @@ int main() {
 		DrawGUI();
 
 		// --- Gizmo logic here ---
-		//ImGui::SetNextWindowPos(ImVec2(0, 0));
-		//ImGui::SetNextWindowSize(io.DisplaySize);
-		//ImGui::Begin("##gizmo_bg", nullptr,
-		//	ImGuiWindowFlags_NoInputs |
-		//	ImGuiWindowFlags_NoTitleBar |
-		//	ImGuiWindowFlags_NoResize |
-		//	ImGuiWindowFlags_NoMove |
-		//	ImGuiWindowFlags_NoScrollbar |
-		//	ImGuiWindowFlags_NoBackground);
-		//ImGui::End();
-		//ImGuizmo::BeginFrame();
-		//ImGuizmo::SetOrthographic(false);
-		//ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
-		//ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
-		//
-		//ImGuizmo::Manipulate(
-		//	glm::value_ptr(camera.calculateViewMatrix()),
-		//	glm::value_ptr(projection),
-		//	operation,  // or ROTATE, SCALE
-		//	ImGuizmo::LOCAL,      // or WORLD
-		//	glm::value_ptr(model)          // Your 4x4 float matrix
-		//);
-		//
-		//if (ImGuizmo::IsUsing()) {
-		//	glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		//}
+		ImGui::SetNextWindowPos(ImVec2(0, 0));
+		ImGui::SetNextWindowSize(io.DisplaySize);
+		ImGui::Begin("##gizmo_bg", nullptr,
+			ImGuiWindowFlags_NoInputs |
+			ImGuiWindowFlags_NoTitleBar |
+			ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove |
+			ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoBackground);
+		ImGui::End();
+		ImGuizmo::BeginFrame();
+		ImGuizmo::SetOrthographic(false);
+		ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
+		ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+		
+		ImGuizmo::Manipulate(
+			glm::value_ptr(camera.calculateViewMatrix()),
+			glm::value_ptr(projection),
+			operation,  // or ROTATE, SCALE
+			ImGuizmo::LOCAL,      // or WORLD
+			glm::value_ptr(model)          // Your 4x4 float matrix
+		);
+		
+		if (ImGuizmo::IsUsing()) {
+			glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		}
 
 		ImGui::Render();
 
@@ -401,13 +383,13 @@ int main() {
 
 		brickTexture.UseTexture();
 		shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
-		gameObjectList[1]->RenderMesh();;
+		gameObjectList[1]->RenderMesh();
 
 		brickTexture.UseTexture();
 		shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
 		gameObjectList[2]->RenderMesh();
 
-		inst->RenderMesh();
+		terrain->RenderMesh();
 		
 		glUseProgram(0);
 
