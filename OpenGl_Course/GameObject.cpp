@@ -15,7 +15,7 @@ GameObject::GameObject(const char* name) {
 //	scale = glm::vec3(1.0f, 1.0f, 1.0f);
 //	rotation = glm::vec3(0.0f, 0.0f, 0.0f);
 //}
-
+//
 //void GameObject::Create(GLfloat xPos, GLfloat yPos, GLfloat zPos, GLfloat xScale, GLfloat yScale, GLfloat zScale, GLfloat xRot, GLfloat yRot, GLfloat zRot) {
 //	position = glm::vec3(xPos, yPos, zPos);
 //	scale = glm::vec3(xScale, yScale, zScale);

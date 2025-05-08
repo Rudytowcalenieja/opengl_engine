@@ -16,7 +16,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-// ImGui
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -29,16 +28,13 @@
 #include "Shader.h"
 #include "Camera.h"
 #include "Texture.h"
-#include "Light.h"
+#include "DirectionalLight.h"
 #include "Material.h"
 #include "GameObject.h"
 
-// Converting degress to radians
-const float toRadians = 0.017453292f;
-
 Window mainWindow;
 
-// Lists
+// Vectors
 std::vector<Mesh*> meshList;
 std::vector<Shader> shaderList;
 std::vector<GameObject*> gameObjectList;
@@ -52,14 +48,13 @@ Texture waterTexture;
 Material shinyMaterial;
 Material dullMaterial;
 
-Light mainLight;
+DirectionalLight mainLight;
+
+int fps_count = 0;
 
 GLfloat deltaTime = 0.0f;
 GLfloat lastTime = 0.0f;
 GLfloat now = 0.0f;
-
-GLfloat diffuseStrength = 0.3f;
-GLfloat ambientStrength = 0.1f;
 
 static int selected = 0;
 static ImGuizmo::OPERATION operation = ImGuizmo::TRANSLATE;
@@ -69,6 +64,7 @@ static const char* vShader = "Shaders/shader.vert";
 static const char* fShader = "Shaders/shader.frag";
 
 Terrain* terrain;
+Instanced* instanced;
 
 void calcAverageNormals(unsigned int * indices, unsigned int indiceCount, GLfloat * vertices, unsigned int verticeCount, 
 						unsigned int vLength, unsigned int normalOffset)
@@ -216,6 +212,10 @@ void CreateObjects() {
 	terrain = new Terrain();
 	terrain->CreateMesh(cubeVertices, cubeIndices, 192, 36);
 	terrain->CreateInstanced();
+
+	instanced = new Instanced();
+	instanced->CreateMesh(cubeVertices, cubeIndices, 192, 36);
+	instanced->CreateInstanced();
 }
 
 void CreateShaders() {
@@ -226,12 +226,19 @@ void CreateShaders() {
 
 void DrawGUI() {
 
+	static float fpsHistory[100] = {};
+	static int fpsIndex = 0;
+
+	fpsHistory[fpsIndex] = ImGui::GetIO().Framerate;
+	fpsIndex = (fpsIndex + 1) % IM_ARRAYSIZE(fpsHistory);
+
+	ImGui::SetNextWindowPos(ImVec2(0, 0));
+
 	// ImGui Create window
-	ImGui::Begin("Info");
-	ImGui::LabelText("FPS", "%.1f", 1 / deltaTime);
+	ImGui::Begin("Info", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+	ImGui::LabelText("FPS Counter", "%.1f", ImGui::GetIO().Framerate);
+	ImGui::PlotLines("FPS History", fpsHistory, IM_ARRAYSIZE(fpsHistory), 0, nullptr, 0.0f, 200.0f);
 	ImGui::LabelText("Camera", "%.2f, %.2f, %.2f", camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
-	ImGui::InputFloat("Ambient Strength", &ambientStrength, 0.1f, 0.1f, "%.1f");
-	ImGui::InputFloat("Diffuse Strength", &diffuseStrength, 0.1f, 0.1f, "%.1f");
 	if (ImGui::BeginCombo("Object", gameObjectList.at(selected)->GetName())) {
 		for (int i = 0; i < gameObjectList.size(); ++i) {
 			bool is_selected = (selected == i);
@@ -289,10 +296,10 @@ int main() {
 	shinyMaterial = Material(1.0f, 32);
 	dullMaterial = Material(0.3f, 4);
 
-	mainLight = Light(1.0f, 1.0f,  1.0f, ambientStrength,
-					  0.0f, 0.3f, -1.0f, diffuseStrength);
+	mainLight = DirectionalLight(1.0f, 1.0f, 1.0f,
+								 0.1f, 0.3f,
+								 0.0f, 0.0f, -1.0f);
 
-	// Creating uniforms
 	GLuint uniformProjection = 0, uniformModel = 0, uniformView = 0, uniformEyePosition = 0, uniformAmbientIntensity = 0, uniformAmbientColor = 0, uniformDirection = 0, uniformDiffuseIntensity = 0, uniformSpecularIntensity = 0, uniformShininess = 0;
 	glm::mat4 projection = glm::perspective(glm::radians(60.0f), (GLfloat)mainWindow.getBufferWidth() / mainWindow.getBufferHeight(), 0.1f, 200.0f);
 
@@ -300,16 +307,21 @@ int main() {
 
 	glm::mat4 model(1.0f);
 
+	double fps_lastTime = glfwGetTime();
+
 	// Loop until window closed
 	while (!mainWindow.getShouldClose()) {
-
-		mainLight.setAmbientIntensity(ambientStrength);
-		mainLight.setDiffuseIntensity(diffuseStrength);
 
 		// deltaTime calculations
 		now = glfwGetTime();
 		deltaTime = now - lastTime;
 		lastTime = now;
+
+		/*fps_count++;
+		if (now - fps_lastTime >= 0.1) {
+			fps_count = 0;
+			fps_lastTime = now;
+		}*/
 
 		// Get & handle user input events
 		glfwPollEvents();
@@ -349,7 +361,7 @@ int main() {
 		);
 		
 		if (ImGuizmo::IsUsing()) {
-			glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+			gameObjectList.at(selected)->SetModel(model);
 		}
 
 		ImGui::Render();
@@ -357,6 +369,10 @@ int main() {
 		// Clear window
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Sky color
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// START
+		/*glDepthFunc(GL_LESS);
+		glColorMask(0, 0, 0, 0);*/
 		
 		shaderList[0].UseShader();
 		uniformModel = shaderList[0].GetModelLocation();
@@ -390,6 +406,27 @@ int main() {
 		gameObjectList[2]->RenderMesh();
 
 		terrain->RenderMesh();
+		instanced->RenderMesh();
+
+		/*glDepthFunc(GL_EQUAL);
+		glColorMask(1, 1, 1, 1);
+
+		dirtTexture.UseTexture();
+		dullMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
+		gameObjectList[0]->RenderMesh();
+
+		brickTexture.UseTexture();
+		shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
+		gameObjectList[1]->RenderMesh();
+
+		brickTexture.UseTexture();
+		shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
+		gameObjectList[2]->RenderMesh();
+
+		terrain->RenderMesh();
+		instanced->RenderMesh();
+
+		glDepthFunc(GL_LESS);*/
 		
 		glUseProgram(0);
 

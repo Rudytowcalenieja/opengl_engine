@@ -38,24 +38,23 @@ void Instanced::CreateMesh(GLfloat* vertices, unsigned int* indices, unsigned in
 	glBindVertexArray(0);
 }
 
-void Instanced::CreateInstanced() {
+void Instanced::CreateInstanced() {	
+	glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, -10.0f, 1.0f));
+	matrixes.push_back(model);
+	matrixes.at(0) = glm::scale(matrixes.at(0), glm::vec3(10.0f, 1.0f, 10.0f));
 
-	int i = 0;
-	for (int y = 0; y < 1000; ++y) {
-		for (int x = 0; x < 1000; ++x) {
-			offsets[i] = glm::vec3(x - 5, 0, y - 5);
-			i++;
-		}
-	}
 
 	glGenBuffers(1, &instancedVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, instancedVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * COUNT, offsets, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, matrixes.size() * sizeof(glm::mat4), matrixes.data(), GL_STATIC_DRAW);
 
 	glBindVertexArray(VAO);
-	glEnableVertexAttribArray(3);
-	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-	glVertexAttribDivisor(3, 1); // advance per instance
+	std::size_t vec4Size = sizeof(glm::vec4);
+	for (int i = 0; i < 4; ++i) {
+		glEnableVertexAttribArray(4 + i);
+		glVertexAttribPointer(4 + i, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(i * vec4Size));
+		glVertexAttribDivisor(4 + i, 1);
+	}
 	glBindVertexArray(0);
 }
 
@@ -82,7 +81,7 @@ void Instanced::RenderMesh() {
 
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-	glDrawElementsInstanced(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0, COUNT);
+	glDrawElementsInstanced(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0, matrixes.size());
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 

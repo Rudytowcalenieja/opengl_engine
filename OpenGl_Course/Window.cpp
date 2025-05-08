@@ -55,6 +55,8 @@ int Window::Initialise() {
 	// Set context for GLEW to use
 	glfwMakeContextCurrent(mainWindow);
 
+	glfwSwapInterval(0);
+
 	// Handle key + mouse input
 	createCallbacks();
 	glfwSetInputMode(mainWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);

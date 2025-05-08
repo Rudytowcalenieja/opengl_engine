@@ -36,8 +36,6 @@ public:
 private:
 	const float toRadians = 0.017453292f;
 
-	const static int COUNT = 1000000;
-
 	GLuint VAO, VBO, IBO, instancedVBO;
 	GLsizei indexCount;
 
@@ -50,7 +48,5 @@ private:
 	glm::mat4 mat;
 
 	std::vector<glm::mat4> matrixes;
-
-	glm::vec3 offsets[COUNT];
 };
 

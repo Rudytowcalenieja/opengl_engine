@@ -30,6 +30,16 @@ void Mesh::CreateMesh(GLfloat* vertices, unsigned int* indices, unsigned int num
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vertices[0]) * 8, (void*)(sizeof(vertices[0]) * 5));
 	glEnableVertexAttribArray(2);
+	
+	// Disable i_Model attrib
+	for (int i = 0; i < 4; ++i) {
+		glDisableVertexAttribArray(4 + i);
+	}
+	// Set identity matrix column-by-column
+	glVertexAttrib4f(4, 1.0f, 0.0f, 0.0f, 0.0f); // column 0
+	glVertexAttrib4f(5, 0.0f, 1.0f, 0.0f, 0.0f); // column 1
+	glVertexAttrib4f(6, 0.0f, 0.0f, 1.0f, 0.0f); // column 2
+	glVertexAttrib4f(7, 0.0f, 0.0f, 0.0f, 1.0f); // column 3
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
