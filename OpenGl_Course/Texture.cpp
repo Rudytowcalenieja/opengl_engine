@@ -5,7 +5,8 @@ Texture::Texture() {
 	width = 0;
 	height = 0;
 	bitDepth = 0;
-	fileLocation = "";
+	pixelated = true;
+	fileLocation = "Images/blank.png";
 }
 
 Texture::Texture(const char* fileLoc) {
@@ -13,6 +14,7 @@ Texture::Texture(const char* fileLoc) {
 	width = 0;
 	height = 0;
 	bitDepth = 0;
+	pixelated = false;
 	fileLocation = fileLoc;
 }
 
@@ -28,8 +30,9 @@ void Texture::LoadTexture() {
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); // GL_NEAREST for voxel engine
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); // GL_NEAREST for voxel engine
+	int pixel = pixelated ? GL_NEAREST : GL_LINEAR;
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, pixel); // GL_NEAREST for voxel engine
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, pixel); // GL_NEAREST for voxel engine
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texData);
 	glGenerateMipmap(GL_TEXTURE_2D);

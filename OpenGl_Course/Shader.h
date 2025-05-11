@@ -1,5 +1,7 @@
 #pragma once
 
+#define SHADER_MAIN 1
+
 #include <stdio.h>
 #include <string>
 #include <iostream>

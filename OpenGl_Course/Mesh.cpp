@@ -6,11 +6,12 @@ Mesh::Mesh() {
 	IBO = 0;
 	indexCount = 0;
 
+	matrix = glm::mat4(1.0f);
 	scale = glm::vec3(1.0f);
 	rotation = glm::vec3(0.0f);
 }
 
-void Mesh::CreateMesh(GLfloat* vertices, unsigned int* indices, unsigned int numOfVertices, unsigned int numOfIndices) {
+void Mesh::CreateMesh(GLfloat* vertices, GLuint* indices, GLuint numOfVertices, GLuint numOfIndices) {
 	indexCount = numOfIndices;
 	
 	glGenVertexArrays(1, &VAO);
@@ -49,24 +50,27 @@ void Mesh::CreateMesh(GLfloat* vertices, unsigned int* indices, unsigned int num
 
 void Mesh::Translate(GLfloat xPos, GLfloat yPos, GLfloat zPos) {
 	position = glm::vec3(xPos, yPos, zPos);
+	matrix = glm::translate(glm::mat4(1.0f), position);
 }
 
 void Mesh::Scale(GLfloat xScale, GLfloat yScale, GLfloat zScale) {
 	scale = glm::vec3(xScale, yScale, zScale);
+	matrix = glm::scale(glm::mat4(1.0f), scale);
 }
 
 void Mesh::Rotate(GLfloat xRot, GLfloat yRot, GLfloat zRot) {
 	rotation = glm::vec3(xRot, yRot, zRot);
+	matrix = glm::rotate(glm::mat4(1.0f), 360 * toRadians, rotation);
 }
 
 void Mesh::RenderMesh() {
-	mat = glm::mat4(1.0f);
+	//matrix = glm::mat4(1.0f);
 
-	mat = glm::scale(mat, scale);
+	//matrix = glm::scale(matrix, scale);
 	//mat = glm::rotate(mat, 3.14159256f, rotation);
 
-	glUniform3f(Shader::GetUniform(1, "position"), position.x, position.y, position.z);
-	glUniformMatrix4fv(Shader::GetUniform(1, "model"), 1, GL_FALSE, glm::value_ptr(mat));
+	//glUniform3f(Shader::GetUniform(1, "position"), position.x, position.y, position.z);
+	glUniformMatrix4fv(Shader::GetUniform(1, "model"), 1, GL_FALSE, glm::value_ptr(matrix));
 
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);

@@ -20,6 +20,8 @@ private:
 	GLuint textureID;
 	int width, height, bitDepth;
 
+	bool pixelated;
+
 	const char* fileLocation;
 };
 

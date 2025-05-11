@@ -1,11 +1,27 @@
 #include "GameObject.h"
 
 GameObject::GameObject() {
-	displayName = "GameObject";
+	o_Texture = Texture();
+	o_Texture.LoadTexture();
+	o_Name = "GameObject";
 }
 
 GameObject::GameObject(const char* name) {
-	displayName = name;
+	o_Texture = Texture();
+	o_Texture.LoadTexture();
+	o_Name = name;
+}
+
+void GameObject::AssignTexture(Texture tex) {
+	o_Texture = tex;
+	tex.LoadTexture();
+}
+
+void GameObject::Draw()
+{
+	o_Texture.UseTexture();
+	o_Material.UseMaterial();
+	RenderMesh();
 }
 
 //GameObject::GameObject(const char* name, bool displayed, GLfloat xPos, GLfloat yPos, GLfloat zPos) {
@@ -47,7 +63,7 @@ GameObject::GameObject(const char* name) {
 //}
 
 void GameObject::UpdateAll(GLfloat deltaTime) {
-	for (auto& component : Components) {
+	for (auto& component : o_Components) {
 		component->Update(deltaTime);
 	}
 }

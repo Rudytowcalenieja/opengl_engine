@@ -12,7 +12,7 @@ class Mesh
 public:
 	Mesh();
 
-	void CreateMesh(GLfloat *vertices, unsigned int *indices, unsigned int numOfVertices, unsigned int numOfIndices);
+	void CreateMesh(GLfloat *vertices, GLuint *indices, GLuint numOfVertices, GLuint numOfIndices);
 
 	void Translate(GLfloat xPos, GLfloat yPos, GLfloat zPos);
 	void Scale(GLfloat xScale, GLfloat yScale, GLfloat zScale);
@@ -22,8 +22,8 @@ public:
 	glm::vec3 GetScale() { return scale; }
 	glm::vec3 GetRotation() { return rotation; }
 
-	glm::mat4& GetModel() { return mat; }
-	void SetModel(glm::mat4& m) { mat = m; }
+	glm::mat4& GetModel() { return matrix; }
+	void SetModel(glm::mat4& m) { matrix = m; }
 
 	void RenderMesh();
 	void ClearMesh();
@@ -42,6 +42,6 @@ private:
 	glm::vec3 rotation;
 	glm::vec3 scale;
 
-	glm::mat4 mat;
+	glm::mat4 matrix;
 };
 

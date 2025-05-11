@@ -10,9 +10,9 @@ Material::Material(GLfloat sIntensity, GLfloat shine) {
 	shininess = shine;
 }
 
-void Material::UseMaterial(GLuint sIntensityLoc, GLuint shineLoc) {
-	glUniform1f(sIntensityLoc, specularIntensity);
-	glUniform1f(shineLoc, shininess);
+void Material::UseMaterial() {
+	glUniform1f(Shader::GetUniform(SHADER_MAIN, "material.specularIntensity"), specularIntensity);
+	glUniform1f(Shader::GetUniform(SHADER_MAIN, "material.shininess"), shininess);
 }
 
 Material::~Material() {

@@ -124,12 +124,12 @@ void CreateObjects() {
 
 	calcAverageNormals(indices, 12, vertices, 32, 8, 5);
 
-	GameObject* obj1 = new GameObject();
+	GameObject* obj1 = new GameObject("Test 1");
 	obj1->CreateMesh(vertices, indices, 32, 12);
 	obj1->Translate(0.0f, 0.0f, 0.0f);
 	gameObjectList.push_back(obj1);
 
-	GameObject* obj2 = new GameObject();
+	GameObject* obj2 = new GameObject("Test 2");
 	obj2->CreateMesh(vertices, indices, 32, 12);
 	obj2->Translate(0.0f, 0.0f, 2.5f);
 	gameObjectList.push_back(obj2);
@@ -207,6 +207,7 @@ void CreateObjects() {
 
 	GameObject* block = new GameObject("Block");
 	block->CreateMesh(cubeVertices, cubeIndices, 192, 36);
+	block->Translate(0.0f, -4.0f, 0.0f);
 	gameObjectList.push_back(block);
 
 	terrain = new Terrain();
@@ -292,9 +293,18 @@ int main() {
 	waterTexture = Texture("Images/water.png");
 	waterTexture.LoadTexture();
 
-
+	// Materials
 	shinyMaterial = Material(1.0f, 32);
 	dullMaterial = Material(0.3f, 4);
+
+	gameObjectList[0]->AssignTexture(dirtTexture);
+	gameObjectList[0]->AssignMaterial(dullMaterial);
+
+	gameObjectList[1]->AssignTexture(brickTexture);
+	gameObjectList[1]->AssignMaterial(shinyMaterial);
+
+	gameObjectList[2]->AssignTexture(brickTexture);
+	gameObjectList[2]->AssignMaterial(shinyMaterial);
 
 	mainLight = DirectionalLight(1.0f, 1.0f, 1.0f,
 								 0.1f, 0.3f,
@@ -352,11 +362,13 @@ int main() {
 		ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
 		ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
 		
+		model = gameObjectList.at(selected)->GetModel();
+
 		ImGuizmo::Manipulate(
 			glm::value_ptr(camera.calculateViewMatrix()),
 			glm::value_ptr(projection),
-			operation,  // or ROTATE, SCALE
-			ImGuizmo::LOCAL,      // or WORLD
+			operation, // or ROTATE, SCALE
+			ImGuizmo::LOCAL, // or WORLD
 			glm::value_ptr(model)          // Your 4x4 float matrix
 		);
 		
@@ -366,13 +378,8 @@ int main() {
 
 		ImGui::Render();
 
-		// Clear window
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Sky color
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		// START
-		/*glDepthFunc(GL_LESS);
-		glColorMask(0, 0, 0, 0);*/
 		
 		shaderList[0].UseShader();
 		uniformModel = shaderList[0].GetModelLocation();
@@ -393,40 +400,14 @@ int main() {
 		glUniformMatrix4fv(uniformView, 1, GL_FALSE, glm::value_ptr(camera.calculateViewMatrix()));
 		glUniform3f(uniformEyePosition, camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
 		
-		dirtTexture.UseTexture();
-		dullMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
-		gameObjectList[0]->RenderMesh();
-
-		brickTexture.UseTexture();
-		shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
-		gameObjectList[1]->RenderMesh();
-
-		brickTexture.UseTexture();
-		shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
-		gameObjectList[2]->RenderMesh();
-
-		terrain->RenderMesh();
-		instanced->RenderMesh();
-
-		/*glDepthFunc(GL_EQUAL);
-		glColorMask(1, 1, 1, 1);
+		
+		for (auto& object : gameObjectList) {
+			object->Draw();
+		}
 
 		dirtTexture.UseTexture();
-		dullMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
-		gameObjectList[0]->RenderMesh();
-
-		brickTexture.UseTexture();
-		shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
-		gameObjectList[1]->RenderMesh();
-
-		brickTexture.UseTexture();
-		shinyMaterial.UseMaterial(uniformSpecularIntensity, uniformShininess);
-		gameObjectList[2]->RenderMesh();
-
 		terrain->RenderMesh();
 		instanced->RenderMesh();
-
-		glDepthFunc(GL_LESS);*/
 		
 		glUseProgram(0);
 
