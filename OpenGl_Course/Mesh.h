@@ -33,7 +33,7 @@ public:
 private:
 	const float toRadians = 0.017453292f;
 
-	GLuint VAO, VBO, IBO, instancedVBO;
+	GLuint VAO, VBO, IBO;
 	GLsizei indexCount;
 	
 	bool isDisplayed;

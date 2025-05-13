@@ -6,9 +6,9 @@ Instanced::Instanced() {
 	IBO = 0;
 	instancedVBO = 0;
 	indexCount = 0;
+	isDisplayed = true;
 
-	scale = glm::vec3(1.0f);
-	rotation = glm::vec3(0.0f);
+	mat = glm::mat4(1.0f);
 }
 
 void Instanced::CreateMesh(GLfloat* vertices, unsigned int* indices, unsigned int numOfVertices, unsigned int numOfIndices) {
@@ -38,15 +38,20 @@ void Instanced::CreateMesh(GLfloat* vertices, unsigned int* indices, unsigned in
 	glBindVertexArray(0);
 }
 
+void Instanced::NewInstance() {
+	glm::mat4 model(1.0f);
+	instancedMatrices.push_back(model);
+}
+
 void Instanced::CreateInstanced() {	
-	glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, -10.0f, 1.0f));
-	matrixes.push_back(model);
-	matrixes.at(0) = glm::scale(matrixes.at(0), glm::vec3(10.0f, 1.0f, 10.0f));
+	//glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(1.0f, -10.0f, 1.0f));
+	//instancedMatrices.push_back(model);
+	//instancedMatrices.at(0) = glm::scale(instancedMatrices.at(0), glm::vec3(10.0f, 1.0f, 10.0f));
 
 
 	glGenBuffers(1, &instancedVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, instancedVBO);
-	glBufferData(GL_ARRAY_BUFFER, matrixes.size() * sizeof(glm::mat4), matrixes.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, instancedMatrices.size() * sizeof(glm::mat4), instancedMatrices.data(), GL_STATIC_DRAW);
 
 	glBindVertexArray(VAO);
 	std::size_t vec4Size = sizeof(glm::vec4);
@@ -56,32 +61,46 @@ void Instanced::CreateInstanced() {
 		glVertexAttribDivisor(4 + i, 1);
 	}
 	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-void Instanced::Translate(GLfloat xPos, GLfloat yPos, GLfloat zPos) {
-	position = glm::vec3(xPos, yPos, zPos);
+void Instanced::Translate(size_t index, GLfloat xPos, GLfloat yPos, GLfloat zPos) {
+	//position = glm::vec3(xPos, yPos, zPos);
+	//mat = glm::translate(glm::mat4(1.0f), position);
+	//instancedMatrices.at(index) = glm::translate(glm::mat4(1.0f), position);
+	instancedMatrices.at(index)[3].x = xPos;
+	instancedMatrices.at(index)[3].y = yPos;
+	instancedMatrices.at(index)[3].z = zPos;
+	glm::vec3 temp = GetPosition(index);
+	printf("Pos: %.1f %.1f %.1f\n", temp.x, temp.y, temp.z);
 }
 
-void Instanced::Scale(GLfloat xScale, GLfloat yScale, GLfloat zScale) {
-	scale = glm::vec3(xScale, yScale, zScale);
+void Instanced::Scale(size_t index, GLfloat xScale, GLfloat yScale, GLfloat zScale) {
+	//scale = glm::vec3(xScale, yScale, zScale);
+	//mat = glm::scale(glm::mat4(1.0f), scale);
+	//instancedMatrices.at(index) = glm::scale(glm::mat4(1.0f), scale);
+	instancedMatrices.at(index)[0].x = xScale;
+	instancedMatrices.at(index)[1].y = yScale;
+	instancedMatrices.at(index)[2].z = zScale;
+	glm::vec3 temp = GetScale(index);
+	printf("Scale: %.1f %.1f %.1f\n", temp.x, temp.y, temp.z);
 }
 
-void Instanced::Rotate(GLfloat xRot, GLfloat yRot, GLfloat zRot) {
-	rotation = glm::vec3(xRot, yRot, zRot);
+void Instanced::Rotate(size_t index, GLfloat xRot, GLfloat yRot, GLfloat zRot) {
+	//rotation = glm::vec3(xRot, yRot, zRot);
+	//mat = glm::rotate(glm::mat4(1.0f), 360 * toRadians, rotation);
+	//instancedMatrices.at(index) = glm::rotate(glm::mat4(1.0f), 360 * toRadians, rotation);
 }
 
 void Instanced::RenderMesh() {
 	mat = glm::mat4(1.0f);
 
-	mat = glm::scale(mat, scale);
-	//mat = glm::rotate(mat, 3.14159256f, rotation);
-
-	glUniform3f(Shader::GetUniform(1, "position"), position.x, position.y, position.z);
+	//glUniform3f(Shader::GetUniform(1, "position"), position.x, position.y, position.z);
 	glUniformMatrix4fv(Shader::GetUniform(1, "model"), 1, GL_FALSE, glm::value_ptr(mat));
 
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-	glDrawElementsInstanced(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0, matrixes.size());
+	glDrawElementsInstanced(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0, instancedMatrices.size());
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 

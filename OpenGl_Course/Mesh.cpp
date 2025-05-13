@@ -5,8 +5,10 @@ Mesh::Mesh() {
 	VBO = 0;
 	IBO = 0;
 	indexCount = 0;
+	isDisplayed = true;
 
 	matrix = glm::mat4(1.0f);
+	position = glm::vec3(0.0f);
 	scale = glm::vec3(1.0f);
 	rotation = glm::vec3(0.0f);
 }
@@ -64,12 +66,6 @@ void Mesh::Rotate(GLfloat xRot, GLfloat yRot, GLfloat zRot) {
 }
 
 void Mesh::RenderMesh() {
-	//matrix = glm::mat4(1.0f);
-
-	//matrix = glm::scale(matrix, scale);
-	//mat = glm::rotate(mat, 3.14159256f, rotation);
-
-	//glUniform3f(Shader::GetUniform(1, "position"), position.x, position.y, position.z);
 	glUniformMatrix4fv(Shader::GetUniform(1, "model"), 1, GL_FALSE, glm::value_ptr(matrix));
 
 	glBindVertexArray(VAO);

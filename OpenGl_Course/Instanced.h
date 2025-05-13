@@ -9,24 +9,43 @@
 
 #include "Shader.h"
 
+struct transform {
+	glm::vec3 position;
+	glm::vec3 scale;
+	glm::quat rotation;
+};
+
 class Instanced
 {
 public:
 	Instanced();
 
 	void CreateMesh(GLfloat* vertices, unsigned int* indices, unsigned int numOfVertices, unsigned int numOfIndices);
+
+	void NewInstance();
 	void CreateInstanced();
 
-	void Translate(GLfloat xPos, GLfloat yPos, GLfloat zPos);
-	void Scale(GLfloat xScale, GLfloat yScale, GLfloat zScale);
-	void Rotate(GLfloat xRot, GLfloat yRot, GLfloat zRot);
+	void Translate(size_t index, GLfloat xPos, GLfloat yPos, GLfloat zPos);
+	void Scale(size_t index, GLfloat xScale, GLfloat yScale, GLfloat zScale);
+	void Rotate(size_t index, GLfloat xRot, GLfloat yRot, GLfloat zRot);
 
-	glm::vec3 GetPosition() { return position; }
-	glm::vec3 GetScale() { return scale; }
-	glm::vec3 GetRotation() { return rotation; }
+	transform GetTransform(size_t index) {
+		return { GetPosition(index), GetScale(index), GetRotation(index) };
+	}
 
-	glm::mat4& GetModel() { return mat; }
-	void SetModel(glm::mat4& m) { mat = m; }
+	// Something here may has error
+	glm::vec3 GetPosition(size_t index) { return instancedMatrices.at(index)[3]; }
+	glm::vec3 GetScale(size_t index) {
+		glm::vec3 tScale;
+		tScale.x = glm::length(glm::vec3(instancedMatrices.at(index)[0]));
+		tScale.y = glm::length(glm::vec3(instancedMatrices.at(index)[1]));
+		tScale.z = glm::length(glm::vec3(instancedMatrices.at(index)[2]));
+		return tScale;
+	}
+	glm::quat GetRotation(size_t index) { return glm::quat_cast(instancedMatrices.at(index)); }
+
+	glm::mat4& GetModel(size_t index) { return instancedMatrices.at(index); }
+	void SetModel(size_t index, glm::mat4& m) { instancedMatrices.at(index) = m; }
 
 	void RenderMesh();
 	void ClearMesh();
@@ -41,12 +60,8 @@ private:
 
 	bool isDisplayed;
 
-	glm::vec3 position;
-	glm::vec3 rotation;
-	glm::vec3 scale;
-
 	glm::mat4 mat;
 
-	std::vector<glm::mat4> matrixes;
+	std::vector<glm::mat4> instancedMatrices;
 };
 

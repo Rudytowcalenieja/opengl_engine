@@ -58,6 +58,7 @@ GLfloat now = 0.0f;
 
 static int selected = 0;
 static ImGuizmo::OPERATION operation = ImGuizmo::TRANSLATE;
+static ImGuizmo::MODE mode = ImGuizmo::LOCAL;
 
 // Shaders
 static const char* vShader = "Shaders/shader.vert";
@@ -216,6 +217,9 @@ void CreateObjects() {
 
 	instanced = new Instanced();
 	instanced->CreateMesh(cubeVertices, cubeIndices, 192, 36);
+	instanced->NewInstance();
+	instanced->Translate(0, 0.0f, -10.0f, 0.0f);
+	instanced->Scale(0, 10.0f, 1.0f, 10.0f);
 	instanced->CreateInstanced();
 }
 
@@ -258,6 +262,10 @@ void DrawGUI() {
 	if (ImGui::RadioButton("Rotate", operation == ImGuizmo::ROTATE)) operation = ImGuizmo::ROTATE;
 	ImGui::SameLine();
 	if (ImGui::RadioButton("Scale", operation == ImGuizmo::SCALE)) operation = ImGuizmo::SCALE;
+	ImGui::Text("Mode:");
+	if (ImGui::RadioButton("Local", mode == ImGuizmo::LOCAL)) mode = ImGuizmo::LOCAL;
+	ImGui::SameLine();
+	if (ImGui::RadioButton("World", mode == ImGuizmo::WORLD)) mode = ImGuizmo::WORLD;
 
 	ImGui::End();
 }
@@ -368,7 +376,7 @@ int main() {
 			glm::value_ptr(camera.calculateViewMatrix()),
 			glm::value_ptr(projection),
 			operation, // or ROTATE, SCALE
-			ImGuizmo::LOCAL, // or WORLD
+			mode, // or WORLD
 			glm::value_ptr(model)          // Your 4x4 float matrix
 		);
 		

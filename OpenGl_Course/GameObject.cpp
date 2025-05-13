@@ -17,8 +17,7 @@ void GameObject::AssignTexture(Texture tex) {
 	tex.LoadTexture();
 }
 
-void GameObject::Draw()
-{
+void GameObject::Draw() {
 	o_Texture.UseTexture();
 	o_Material.UseMaterial();
 	RenderMesh();
