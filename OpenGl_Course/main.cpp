@@ -57,6 +57,7 @@ GLfloat lastTime = 0.0f;
 GLfloat now = 0.0f;
 
 static int selected = 0;
+static int instance = 0;
 static ImGuizmo::OPERATION operation = ImGuizmo::TRANSLATE;
 static ImGuizmo::MODE mode = ImGuizmo::LOCAL;
 
@@ -220,6 +221,8 @@ void CreateObjects() {
 	instanced->NewInstance();
 	instanced->Translate(0, 0.0f, -10.0f, 0.0f);
 	instanced->Scale(0, 10.0f, 1.0f, 10.0f);
+	instanced->NewInstance();
+	instanced->Translate(1, -10.f, -5.0f, 0.0f);
 	instanced->CreateInstanced();
 }
 
@@ -227,6 +230,26 @@ void CreateShaders() {
 	Shader* shader1 = new Shader();
 	shader1->CreateFromFiles(vShader, fShader);
 	shaderList.push_back(*shader1);
+}
+
+void TransformUI(size_t index) {
+	if (ImGui::TreeNodeEx("Transform Instance", ImGuiTreeNodeFlags_DefaultOpen)) {
+		transform& trans = instanced->GetTransform(index);
+		bool edited = false;
+		edited |= ImGui::DragFloat3("Position", glm::value_ptr(trans.position), 0.1f);
+		glm::vec3 degress = glm::degrees(trans.rotation);
+		edited |= ImGui::DragFloat3("Rotation", glm::value_ptr(degress), 1.0f);
+		edited |= ImGui::DragFloat3("Scale", glm::value_ptr(trans.scale), 0.1f);
+
+		if (edited) {
+			glm::vec3 rad = glm::radians(degress);
+			trans.rotation = rad;
+			instanced->RebuildMatrix(index);
+			instanced->UpdateMatrix(index);
+		}
+
+		ImGui::TreePop();
+	}
 }
 
 void DrawGUI() {
@@ -244,14 +267,16 @@ void DrawGUI() {
 	ImGui::LabelText("FPS Counter", "%.1f", ImGui::GetIO().Framerate);
 	ImGui::PlotLines("FPS History", fpsHistory, IM_ARRAYSIZE(fpsHistory), 0, nullptr, 0.0f, 200.0f);
 	ImGui::LabelText("Camera", "%.2f, %.2f, %.2f", camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
-	if (ImGui::BeginCombo("Object", gameObjectList.at(selected)->GetName())) {
+	ImGui::Text(" ");
+	ImGui::Text("Objects");
+	if (ImGui::BeginCombo("##1", gameObjectList.at(selected)->GetName())) {
 		for (int i = 0; i < gameObjectList.size(); ++i) {
 			bool is_selected = (selected == i);
 			if (ImGui::Selectable(gameObjectList.at(i)->GetName(), is_selected)) {
 				selected = i;
 			}
 			if (is_selected) {
-				ImGui::SetItemDefaultFocus(); // Default keyboard focus
+				ImGui::SetItemDefaultFocus();
 			}
 		}
 		ImGui::EndCombo();
@@ -266,6 +291,22 @@ void DrawGUI() {
 	if (ImGui::RadioButton("Local", mode == ImGuizmo::LOCAL)) mode = ImGuizmo::LOCAL;
 	ImGui::SameLine();
 	if (ImGui::RadioButton("World", mode == ImGuizmo::WORLD)) mode = ImGuizmo::WORLD;
+	ImGui::Text(" ");
+	ImGui::Text("Instances");
+	if (ImGui::BeginCombo("##2", ("Instance " + std::to_string(instance)).c_str())) {
+		for (int i = 0; i < instanced->GetTransformList().size(); ++i) {
+			bool is_selected = (instance == i);
+			printf("%d", i);
+			if (ImGui::Selectable(("Instance " + std::to_string(i)).c_str(), is_selected)) {
+				instance = i;
+			}
+			if (is_selected) {
+				ImGui::SetItemDefaultFocus();
+			}
+		}
+		ImGui::EndCombo();
+	}
+	TransformUI(instance);
 
 	ImGui::End();
 }

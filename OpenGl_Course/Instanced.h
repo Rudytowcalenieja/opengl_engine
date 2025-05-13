@@ -10,9 +10,10 @@
 #include "Shader.h"
 
 struct transform {
-	glm::vec3 position;
-	glm::vec3 scale;
-	glm::quat rotation;
+	glm::vec3 position = { 0.0f, 0.0f, 0.0f };
+	glm::vec3 scale = { 1.0f, 1.0f, 1.0f };
+	glm::vec3 rotation = { 0.0f, 0.0f, 0.0f };
+	glm::mat4 model = glm::mat4(1.0f);
 };
 
 class Instanced
@@ -29,12 +30,17 @@ public:
 	void Scale(size_t index, GLfloat xScale, GLfloat yScale, GLfloat zScale);
 	void Rotate(size_t index, GLfloat xRot, GLfloat yRot, GLfloat zRot);
 
-	transform GetTransform(size_t index) {
-		return { GetPosition(index), GetScale(index), GetRotation(index) };
+	transform& GetTransform(size_t index) {
+		return transforms.at(index);
 	}
 
+	std::vector<transform> GetTransformList() { return transforms; }
+
+	void RebuildMatrix(size_t index);
+	void UpdateMatrix(size_t index);
+
 	// Something here may has error
-	glm::vec3 GetPosition(size_t index) { return instancedMatrices.at(index)[3]; }
+	/*glm::vec3 GetPosition(size_t index) { return instancedMatrices.at(index)[3]; }
 	glm::vec3 GetScale(size_t index) {
 		glm::vec3 tScale;
 		tScale.x = glm::length(glm::vec3(instancedMatrices.at(index)[0]));
@@ -42,9 +48,9 @@ public:
 		tScale.z = glm::length(glm::vec3(instancedMatrices.at(index)[2]));
 		return tScale;
 	}
-	glm::quat GetRotation(size_t index) { return glm::quat_cast(instancedMatrices.at(index)); }
+	glm::vec3 GetRotation(size_t index) { return glm::eulerAngles(glm::quat_cast(instancedMatrices.at(index))); }*/
 
-	glm::mat4& GetModel(size_t index) { return instancedMatrices.at(index); }
+	//glm::mat4& GetModel(size_t index) { return instancedMatrices.at(index); }
 	void SetModel(size_t index, glm::mat4& m) { instancedMatrices.at(index) = m; }
 
 	void RenderMesh();
@@ -63,5 +69,6 @@ private:
 	glm::mat4 mat;
 
 	std::vector<glm::mat4> instancedMatrices;
+	std::vector<transform> transforms;
 };
 
